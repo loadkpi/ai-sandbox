@@ -40,6 +40,11 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode)
+      if [[ $# -lt 2 ]]; then
+        echo "--mode requires an argument" >&2
+        usage >&2
+        exit 1
+      fi
       MODE="$2"
       shift 2
       ;;
@@ -231,6 +236,7 @@ DOCKER_ARGS=(
   -v "${ROOT}/.ai-sandbox/hooks:/workspace/.ai-sandbox/hooks:ro"
   -v "${ROOT}/.ai-sandbox/allowed-domains.txt:/workspace/.ai-sandbox/allowed-domains.txt:ro"
   -v "${ROOT}/.claude/settings.json:/workspace/.claude/settings.json:ro"
+  -v "${ROOT}/.claude/settings.local.json:/workspace/.claude/settings.local.json:ro"
   -v "${ROOT}/.mcp.json:/workspace/.mcp.json:ro"
 )
 

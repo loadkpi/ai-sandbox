@@ -12,11 +12,14 @@ normalize_host() {
 is_allowed_host() {
   local host
   host="$(normalize_host <<<"${1:-}")"
-  [[ -z "$host" ]] && return 0
+  # Fail closed: an empty/unparseable host is never allowed.
+  [[ -z "$host" ]] && return 1
 
   while IFS= read -r line; do
     line="${line%%#*}"
-    line="$(echo "$line" | xargs || true)"
+    # Trim leading/trailing whitespace without spawning a subshell.
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
     [[ -z "$line" ]] && continue
 
     line="$(normalize_host <<<"$line")"
@@ -57,17 +60,28 @@ from urllib.parse import urlparse
 cmd = sys.argv[1]
 hosts = set()
 
+# Explicit URLs.
 for m in re.finditer(r'(https?|ssh)://[^\s"\']+', cmd):
-    u = m.group(0)
     try:
-        p = urlparse(u)
+        p = urlparse(m.group(0))
         if p.hostname:
             hosts.add(p.hostname.lower())
     except Exception:
         pass
 
+# git scp-style remote: git@host:path (narrow, low false-positive).
 for m in re.finditer(r'\bgit@([a-zA-Z0-9.\-]+):', cmd):
     hosts.add(m.group(1).lower())
+
+# ssh/scp/sftp/rsync remotes — only when such a command is actually invoked,
+# so that email addresses and file:line refs are not mistaken for hosts.
+if re.search(r'(?:^|\s|/)(?:ssh|scp|sftp|rsync)\b', cmd):
+    # user@host
+    for m in re.finditer(r'\b[\w.\-]+@([a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b', cmd):
+        hosts.add(m.group(1).lower())
+    # host:path shorthand (path may be relative, i.e. no leading slash)
+    for m in re.finditer(r'(?:^|\s)([a-zA-Z0-9][a-zA-Z0-9.\-]*\.[a-zA-Z]{2,}):', cmd):
+        hosts.add(m.group(1).lower())
 
 for h in sorted(hosts):
     print(h)
@@ -88,6 +102,9 @@ except Exception:
     print("")
 PY
 )"
+    if [[ -z "$HOST" ]]; then
+      deny "WebFetch URL has no parseable host; refusing."
+    fi
     if ! is_allowed_host "$HOST"; then
       deny "WebFetch to '$HOST' is not allowed. Add it to .ai-sandbox/allowed-domains.txt to permit."
     fi
@@ -99,6 +116,13 @@ PY
 
   "Bash")
     CMD="$(jq -r '.tool_input.command // ""' <<<"$INPUT")"
+
+    # Raw-socket exfil primitives that carry no parseable host. The allowlist
+    # cannot vet these, so block them outright (see CODE-REVIEW.md #1/#2).
+    if [[ "$CMD" == *"/dev/tcp/"* || "$CMD" == *"/dev/udp/"* ]]; then
+      deny "Raw socket access via /dev/tcp or /dev/udp is not allowed in this sandbox mode."
+    fi
+
     while IFS= read -r host; do
       [[ -z "$host" ]] && continue
       if ! is_allowed_host "$host"; then

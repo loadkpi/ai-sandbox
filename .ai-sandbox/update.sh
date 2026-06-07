@@ -22,10 +22,20 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --codex)
+      if [[ $# -lt 2 ]]; then
+        echo "--codex requires an argument" >&2
+        usage >&2
+        exit 1
+      fi
       NEW_CODEX="$2"
       shift 2
       ;;
     --claude)
+      if [[ $# -lt 2 ]]; then
+        echo "--claude requires an argument" >&2
+        usage >&2
+        exit 1
+      fi
       NEW_CLAUDE="$2"
       shift 2
       ;;

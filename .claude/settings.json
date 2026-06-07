@@ -14,9 +14,11 @@
 
       "Edit(./.ai-sandbox/**)",
       "Edit(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
       "Edit(./.mcp.json)",
       "Write(./.ai-sandbox/**)",
       "Write(./.claude/settings.json)",
+      "Write(./.claude/settings.local.json)",
       "Write(./.mcp.json)",
 
       "Bash(sudo *)",
