@@ -1,0 +1,31 @@
+# One domain per line.
+# Comments and empty lines are ignored.
+# Use exact domains or wildcard-like forms:
+#   github.com
+#   .github.com
+#   *.githubusercontent.com
+
+# OpenAI / Codex
+api.openai.com
+chatgpt.com
+chat.openai.com
+auth.openai.com
+
+# Anthropic / Claude
+api.anthropic.com
+claude.ai
+console.anthropic.com
+
+# Source hosting
+github.com
+api.github.com
+raw.githubusercontent.com
+objects.githubusercontent.com
+gitlab.com
+
+# Package registries
+registry.npmjs.org
+npmjs.com
+pypi.org
+files.pythonhosted.org
+rubygems.org

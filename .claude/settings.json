@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./config/credentials*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./.ai-sandbox/home/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+
+      "Edit(./.ai-sandbox/**)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.mcp.json)",
+      "Write(./.ai-sandbox/**)",
+      "Write(./.claude/settings.json)",
+      "Write(./.mcp.json)",
+
+      "Bash(sudo *)",
+      "Bash(docker *)",
+      "Bash(nsenter *)",
+      "Bash(mount *)",
+
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(socat *)",
+      "Bash(python3 -c *urllib*)",
+      "Bash(python3 -c *requests*)",
+      "Bash(python3 -c *socket*)",
+      "Bash(python3 -c *http.client*)",
+      "Bash(python -c *urllib*)",
+      "Bash(python -c *requests*)",
+      "Bash(python -c *socket*)",
+      "Bash(node -e *fetch*)",
+      "Bash(node -e *http*)",
+      "Bash(node -e *https*)",
+      "Bash(node -e *net*)",
+      "Bash(perl -e *Socket*)",
+      "Bash(perl -MIO::Socket*)"
+    ]
+  }
+}
