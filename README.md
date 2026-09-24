@@ -189,13 +189,18 @@ The host kernel lacks swap accounting. Either enable
 Run `git submodule update --init` after cloning.
 
 **Container name conflict on parallel sessions**
-The container name now includes `$$` (PID). If you still see conflicts,
-set `AI_SANDBOX_NAME_SUFFIX=$(date +%s)` before invoking `run.sh`.
+The container name includes `$$` (PID). If you still see a conflict, a
+dead container with the same name exists. Remove it with
+`docker rm -f <name>`.
 
-**Codex says `model gpt-5.5 not found`**
-Either downgrade in `.ai-sandbox/home/.codex/config.toml` (just remove the
-`# managed-by` marker line first to stop auto-regeneration) or delete the
-`model = ...` line entirely to let Codex use its default.
+**Codex says the model is not found or not available**
+Your account has no access to the model in `CODEX_MODEL`. Set a different
+model in `.ai-sandbox/versions.env` (for example `gpt-6-sol`), or override
+it for one run with `AI_SANDBOX_CODEX_MODEL`. See [Codex model](#codex-model).
+
+**Codex says `approval_policy = "untrusted" is no longer supported`**
+Your `run.sh` is older than this template. Update `.ai-sandbox/` from the
+template. Codex 0.149 and later removed the `untrusted` policy.
 
 **arm64 host**
 Supported. The entrypoint detects `libnss_wrapper.so` via `ldconfig` and
@@ -218,3 +223,24 @@ falls back to `/usr/lib/aarch64-linux-gnu/libnss_wrapper.so`.
 | `.claude/settings.json`               | Project-level Claude restrictions        |
 | `.mcp.json`                           | Codex registered as an MCP server        |
 | `install.sh`                          | Installer for vendoring into projects    |
+
+## Documentation
+
+The `docs/` directory contains the design and operations documents:
+
+| Document                                         | Contents                                   |
+|--------------------------------------------------|--------------------------------------------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)          | Topology, life cycle, protection layers    |
+| [THREAT-MODEL.md](docs/THREAT-MODEL.md)          | Threat actors, covered and open gaps       |
+| [DECISIONS.md](docs/DECISIONS.md)                | Architecture decision records              |
+| [OPERATIONS.md](docs/OPERATIONS.md)              | Runbook and recovery scenarios             |
+| [FAQ.md](docs/FAQ.md)                            | Frequent questions                         |
+| [COMPARISON.md](docs/COMPARISON.md)              | Comparison with alternatives               |
+| [ROADMAP.md](docs/ROADMAP.md)                    | Options for further development            |
+| [TASK.md](docs/TASK.md)                          | Initial task list                          |
+| [IMPLEMENTATION.md](docs/IMPLEMENTATION.md)      | Report of the 2026-05-28 iteration         |
+| [CODE-REVIEW.md](docs/CODE-REVIEW.md)            | Code review notes                          |
+
+## License
+
+MIT. See [LICENSE](LICENSE).
