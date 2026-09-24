@@ -237,9 +237,7 @@ The `docs/` directory contains the design and operations documents:
 | [FAQ.md](docs/FAQ.md)                            | Frequent questions                         |
 | [COMPARISON.md](docs/COMPARISON.md)              | Comparison with alternatives               |
 | [ROADMAP.md](docs/ROADMAP.md)                    | Options for further development            |
-| [TASK.md](docs/TASK.md)                          | Initial task list                          |
-| [IMPLEMENTATION.md](docs/IMPLEMENTATION.md)      | Report of the 2026-05-28 iteration         |
-| [CODE-REVIEW.md](docs/CODE-REVIEW.md)            | Code review notes                          |
+| [CODE-REVIEW.md](docs/CODE-REVIEW.md)            | Security review findings                   |
 
 ## License
 

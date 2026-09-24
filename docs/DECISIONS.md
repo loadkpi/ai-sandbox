@@ -108,7 +108,7 @@ sends it to the container.
   not work headless.
 - Vault / 1Password CLI. This adds an external dependency.
 
-**Open:** UX-01 in TASK.md describes a cascaded override (global + for
+**Open:** UX-01 in ROADMAP.md describes a cascaded override (global + for
 each project). It is postponed.
 
 ---
@@ -215,7 +215,7 @@ code audits and for the analysis of untrusted content.
 **Status:** postponed (iteration 2026-05-28)
 
 **Context:** Real L3 filtering in the default, webfetch and dev modes is
-the goal of TASK.md NET-01. The Anthropic pattern (init-firewall.sh) needs
+the goal of NET-01. The Anthropic pattern (init-firewall.sh) needs
 root in the container + `setpriv` to drop the privileges.
 
 **Decision:** Do not implement it in this iteration. Use only the `offline`
@@ -238,7 +238,7 @@ recommends it). A separate init container with NET_ADMIN sets iptables in
 the shared netns. The main container starts with `--user` and no caps.
 
 **Documented as a limitation:** README.md §"Known limitations",
-THREAT-MODEL.md, IMPLEMENTATION.md, ROADMAP.md.
+THREAT-MODEL.md, ROADMAP.md.
 
 ---
 

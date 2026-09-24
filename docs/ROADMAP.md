@@ -2,11 +2,9 @@
 
 This file is a roadmap, not a plan. The ideas are sorted by priority. But
 the order of implementation depends on how people use the project.
-TASK.md stays the source of truth for the initial design. This file
-contains the items that remain from TASK.md, and new items from the
-current iteration.
+Tier 1 contains the items that remain from the initial task list.
 
-## Tier 1 — close the initial TASK.md
+## Tier 1 — close the initial task list
 
 ### NET-01: real network isolation (iptables / nftables firewall)
 
@@ -21,7 +19,7 @@ This is the main gap in the sandbox.
    - Advantage: no architecture changes are necessary.
    - Disadvantage: it breaks rootless Docker and Podman, conflicts with
      `--user`, makes the entrypoint more complex, and gives `docker exec`
-     risks without `-u`. `IMPLEMENTATION.md` lists the disadvantages.
+     risks without `-u`. DECISIONS.md ADR-009 lists the disadvantages.
 
 2. **Sidecar init container**
    - The first `docker run --rm` with `NET_ADMIN` in a shared network
@@ -55,9 +53,12 @@ does not make the entrypoint more complex.
 ### UX-01: global API keys
 
 At this time, the credentials are in `~/.config/ai-sandbox/credentials.env`.
-This is half done. The remaining items from TASK.md:
+This is half done. The remaining items:
 
 - A cascade: a project `.ai-sandbox/.env` on top of the global file.
+  Docker `--env-file` uses the last value if a variable occurs two times.
+  Thus two `--env-file` options (global first, project second) are
+  sufficient.
 - A `.env.example` template at the first start.
 - A global directory `~/.ai-sandbox/` for shared data (separate from the
   state of each project).
@@ -66,7 +67,9 @@ This is half done. The remaining items from TASK.md:
 
 A standard `~/.ai-sandbox/master-prompt.md`. The sandbox renders it into
 the `CLAUDE.md` of the target project and into the Codex
-`instructions_file`. TASK.md §UX-02 gives the full description.
+`instructions_file`. An optional project `.ai-sandbox/prompt.md` adds
+project rules after the global prompt. `run.sh` creates a template of the
+global prompt at the first start.
 
 ### OPS-01: HEALTHCHECK in the Dockerfile
 
