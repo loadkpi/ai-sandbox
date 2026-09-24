@@ -2,11 +2,20 @@
 set -euo pipefail
 
 MODE="default"
+WITH_HOST_SKILLS=false
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CREDS_FILE="${AI_SANDBOX_CREDS_FILE:-$HOME/.config/ai-sandbox/credentials.env}"
+HOST_CLAUDE_DIR="${AI_SANDBOX_HOST_CLAUDE_DIR:-$HOME/.claude}"
 
 source "${ROOT}/.ai-sandbox/versions.env"
 IMAGE_TAG="ai-sandbox:codex-${CODEX_VERSION}_claude-${CLAUDE_VERSION}"
+
+# Codex model: env override > versions.env > built-in default.
+CODEX_MODEL="${AI_SANDBOX_CODEX_MODEL:-${CODEX_MODEL:-gpt-6-astra}}"
+if [[ ! "${CODEX_MODEL}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "Invalid Codex model name: ${CODEX_MODEL}" >&2
+  exit 1
+fi
 
 AI_SANDBOX_MEMORY="${AI_SANDBOX_MEMORY:-4g}"
 AI_SANDBOX_CPUS="${AI_SANDBOX_CPUS:-2}"
@@ -15,7 +24,8 @@ AI_SANDBOX_PIDS="${AI_SANDBOX_PIDS:-1024}"
 usage() {
   cat <<EOF
 Usage:
-  ./.ai-sandbox/run.sh [--mode default|webfetch|dev|open|offline] [--] [command...]
+  ./.ai-sandbox/run.sh [--mode default|webfetch|dev|open|offline]
+                       [--with-host-skills] [--] [command...]
 
 Modes:
   default   No Web*, no curl/wget. Bridge network (no L3 filter).
@@ -24,14 +34,23 @@ Modes:
   open      No restrictions (use only for trusted local work).
   offline   --network=none. Maximum isolation; no network at all.
 
+Flags:
+  --with-host-skills  Mount the host's ~/.claude/{skills,agents,commands}
+                      read-only into the sandbox so your personal skills,
+                      subagents and slash-commands are available. Never
+                      mounts ~/.claude.json or credentials. Opt-in only.
+
 Env knobs:
   AI_SANDBOX_MEMORY (default 4g)
   AI_SANDBOX_CPUS   (default 2)
   AI_SANDBOX_PIDS   (default 1024)
+  AI_SANDBOX_HOST_CLAUDE_DIR  (default \$HOME/.claude; source for --with-host-skills)
+  AI_SANDBOX_CODEX_MODEL      (one-off override of CODEX_MODEL from versions.env)
 
 Examples:
   ./.ai-sandbox/run.sh
   ./.ai-sandbox/run.sh -- claude
+  ./.ai-sandbox/run.sh --with-host-skills -- claude
   ./.ai-sandbox/run.sh --mode offline -- bash
   ./.ai-sandbox/run.sh --mode dev -- bash -lc 'npm ci && npm test'
 EOF
@@ -47,6 +66,10 @@ while [[ $# -gt 0 ]]; do
       fi
       MODE="$2"
       shift 2
+      ;;
+    --with-host-skills)
+      WITH_HOST_SKILLS=true
+      shift
       ;;
     -h|--help)
       usage
@@ -173,8 +196,8 @@ render_codex_config() {
 
   cat > "${target}" <<EOF
 ${marker}
-model = "gpt-5.5"
-approval_policy = "untrusted"
+model = "${CODEX_MODEL}"
+approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 web_search = "cached"
 
@@ -193,7 +216,7 @@ EOF
 render_claude_local_settings
 render_codex_config
 
-if ! docker image inspect "${IMAGE_TAG}" >/dev/null 2>&1; then
+if [[ -z "${AI_SANDBOX_PRINT_ARGS:-}" ]] && ! docker image inspect "${IMAGE_TAG}" >/dev/null 2>&1; then
   "${ROOT}/.ai-sandbox/build.sh" >/dev/null
 fi
 
@@ -240,6 +263,17 @@ DOCKER_ARGS=(
   -v "${ROOT}/.mcp.json:/workspace/.mcp.json:ro"
 )
 
+# Opt-in: surface the host user's personal skills/agents/commands, read-only.
+# Deliberately never mounts ~/.claude.json or any credential file.
+if [[ "${WITH_HOST_SKILLS}" == "true" ]]; then
+  for sub in skills agents commands; do
+    if [[ -d "${HOST_CLAUDE_DIR}/${sub}" ]]; then
+      DOCKER_ARGS+=( -v "${HOST_CLAUDE_DIR}/${sub}:/home/sandbox/.claude/${sub}:ro" )
+      echo "[run.sh] mounting host ~/.claude/${sub} (read-only)" >&2
+    fi
+  done
+fi
+
 case "${MODE}" in
   offline)
     DOCKER_ARGS+=( --network=none )
@@ -252,6 +286,13 @@ fi
 
 if [[ $# -eq 0 ]]; then
   set -- bash
+fi
+
+# Testability / debugging hook: print the assembled docker invocation and exit
+# instead of running it (used by test/run-args.test.sh).
+if [[ -n "${AI_SANDBOX_PRINT_ARGS:-}" ]]; then
+  printf '%s\n' docker "${DOCKER_ARGS[@]}" "${IMAGE_TAG}" "$@"
+  exit 0
 fi
 
 exec docker "${DOCKER_ARGS[@]}" "${IMAGE_TAG}" "$@"

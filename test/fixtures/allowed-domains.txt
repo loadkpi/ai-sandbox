@@ -1,0 +1,13 @@
+# Fixture allow-list for net-guard tests (kept stable so tests do not depend
+# on edits to the real .ai-sandbox/allowed-domains.txt).
+github.com
+api.github.com
+
+# wildcard form
+*.githubusercontent.com
+
+# leading-dot form (matches apex + subdomains)
+.example.net
+
+#   indented + commented line below must be ignored
+   # not-a-host.example

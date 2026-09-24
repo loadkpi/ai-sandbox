@@ -99,6 +99,41 @@ filters Claude tool calls against `.ai-sandbox/allowed-domains.txt`. The hook
 does **not** protect Codex or arbitrary user shells — for hard network
 isolation use `--mode offline`.
 
+## Host skills / agents (opt-in)
+
+By default the sandbox has an isolated `HOME`, so your **host** `~/.claude`
+skills, subagents and slash-commands are not visible inside it (project-level
+`.claude/` in the repo still is). To surface your personal ones, add
+`--with-host-skills`:
+
+```bash
+./.ai-sandbox/run.sh --with-host-skills -- claude
+```
+
+This bind-mounts `~/.claude/{skills,agents,commands}` **read-only** (only those
+that exist). It deliberately never mounts `~/.claude.json` or any credential
+file, and the mounts are read-only so the agent cannot tamper with your host
+config. Override the source dir with `AI_SANDBOX_HOST_CLAUDE_DIR`.
+
+## Codex model
+
+The Codex model is set in `.ai-sandbox/versions.env`:
+
+```bash
+CODEX_MODEL=gpt-6-astra
+```
+
+Change it there to switch permanently (e.g. `gpt-6-sol` if your account has no
+Astra access). For a one-off run, override it from the environment:
+
+```bash
+AI_SANDBOX_CODEX_MODEL=gpt-6-sol ./.ai-sandbox/run.sh -- codex
+```
+
+`run.sh` writes the value into `.ai-sandbox/home/.codex/config.toml` on every
+run, so a model picked via `/model` inside Codex is reset on the next start.
+`update.sh` keeps `CODEX_MODEL` when it bumps the tool versions.
+
 ## Security model
 
 - **Filesystem**: read-only rootfs, `/tmp` and `/run` tmpfs only.
