@@ -56,7 +56,8 @@ being present, plus a narrow `git@host:` rule. Covered by a 12-case test battery
 (emails, rsync-local, scp relative/absolute, git scp-style, /dev/tcp, WebFetch).
 
 ### 3. dev mode gives Codex full network with no allowlist
-`render_codex_config` sets `network_access = true` in dev mode. Codex is not
+In dev mode Codex runs with `sandbox_mode = "danger-full-access"` (ADR-015),
+i.e. with network. Codex is not
 subject to net-guard (a Claude hook), so it can reach any host. Documented as a
 known limitation of dev mode.
 

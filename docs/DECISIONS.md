@@ -368,6 +368,56 @@ template in an existing project).
 
 ---
 
+## ADR-015: Codex `sandbox_mode` depends on the run mode (no bwrap in the container)
+
+**Status:** accepted
+
+**Context:** Codex wraps shell commands in its own sandbox (bubblewrap,
+shipped inside the `@openai/codex` package). Inside our container it always
+fails: `bwrap: No permissions to create a new namespace`. Bubblewrap needs user
+namespaces, and the container forbids them with `--cap-drop=ALL`,
+`--security-opt no-new-privileges` and Docker's default seccomp profile.
+Relaxing seccomp/AppArmor only moves the error (`Failed to make / slave`,
+`setting up uid map: Permission denied`); a working bwrap needs `CAP_SYS_ADMIN`.
+
+**Decision:** `run.sh` writes `sandbox_mode` per mode:
+
+| Mode                    | `sandbox_mode`         | Codex network |
+|-------------------------|------------------------|---------------|
+| `default`, `webfetch`   | `workspace-write`      | off (`network_access = false`) |
+| `dev`, `open`           | `danger-full-access`   | on            |
+| `offline`               | `danger-full-access`   | none (`--network=none`) |
+
+In addition, `run.sh` generates `~/.codex/AGENTS.md` that tells the agent not
+to use `bwrap`/`unshare`/other nested sandboxes, and not to retry or escalate
+when a command fails with a namespace error.
+
+**Reasons:**
+- In `dev`/`open` Codex already has network, and `offline` has none, so
+  `danger-full-access` loses no network protection. The container
+  (`--read-only`, `--cap-drop=ALL`, limits, `:ro` config mounts) is the
+  boundary.
+- In `default`/`webfetch` the container is on a bridge network with no L3
+  filter. `network_access = false` is the only thing that keeps Codex off the
+  network there, and it is a `workspace-write` setting. So we keep it.
+- We do not weaken the container for the sake of a nested sandbox.
+
+**Consequences:** with `danger-full-access` Codex may write anywhere the
+container allows: `.git` of the project and `.ai-sandbox/home/` (persistent
+across runs; only `config.toml` and `AGENTS.md` are regenerated). Approvals
+(`approval_policy = "on-request"`) still apply. In `default`/`webfetch`, Codex
+still tries bwrap; the `AGENTS.md` note only reduces the retries and
+escalations.
+
+**Rejected:**
+- Give the container `CAP_SYS_ADMIN` / `seccomp=unconfined` so bwrap works.
+  This weakens the isolation the project exists for.
+- `danger-full-access` in every mode. Opens network for Codex in `default`.
+
+**Related:** ADR-013.
+
+---
+
 ## Template for new decisions
 
 ```markdown

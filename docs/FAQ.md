@@ -84,6 +84,11 @@ In the `default` and `webfetch` modes, the Codex config has
 `network_access = false`. This is intentional. Use `--mode dev` for
 development with the network.
 
+In `dev`, `open` and `offline`, Codex runs with
+`sandbox_mode = "danger-full-access"` because its own sandbox (bwrap) cannot
+start in the container (see ADR-015). That loses nothing for the network:
+`dev`/`open` give Codex network anyway, `offline` has none.
+
 This is different from the container network. In the default mode, the
 container has a Docker network (bridge). The Codex config removes the
 network only for Codex.

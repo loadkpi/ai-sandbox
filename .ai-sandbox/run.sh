@@ -189,23 +189,32 @@ render_codex_config() {
     return 0
   fi
 
-  local codex_network="false"
-  if [[ "${MODE}" == "dev" || "${MODE}" == "open" ]]; then
-    codex_network="true"
+  # Codex's own sandbox (bubblewrap) cannot start inside this container: it
+  # needs user namespaces, which --cap-drop=ALL, no-new-privileges and Docker's
+  # seccomp profile forbid, and we do not weaken the container for it.
+  #   default/webfetch: keep workspace-write. Its network_access = false is the
+  #     only thing stopping Codex from using the container's bridge network.
+  #   dev/open/offline: danger-full-access. Nothing is lost: dev/open already
+  #     give Codex network, offline has none. The container is the boundary.
+  local sandbox_mode="workspace-write"
+  local workspace_write_block='
+[sandbox_workspace_write]
+network_access = false
+exclude_slash_tmp = true
+exclude_tmpdir_env_var = true
+'
+  if [[ "${MODE}" == "dev" || "${MODE}" == "open" || "${MODE}" == "offline" ]]; then
+    sandbox_mode="danger-full-access"
+    workspace_write_block=""
   fi
 
   cat > "${target}" <<EOF
 ${marker}
 model = "${CODEX_MODEL}"
 approval_policy = "on-request"
-sandbox_mode = "workspace-write"
+sandbox_mode = "${sandbox_mode}"
 web_search = "cached"
-
-[sandbox_workspace_write]
-network_access = ${codex_network}
-exclude_slash_tmp = true
-exclude_tmpdir_env_var = true
-
+${workspace_write_block}
 [shell_environment_policy]
 inherit = "core"
 include_only = ["PATH", "HOME", "USER", "LANG", "LC_ALL", "TERM",
@@ -213,8 +222,37 @@ include_only = ["PATH", "HOME", "USER", "LANG", "LC_ALL", "TERM",
 EOF
 }
 
+# Global Codex instructions ($CODEX_HOME/AGENTS.md). bwrap/unshare cannot work
+# in this container, so tell the agent not to try or escalate over it.
+render_codex_agents() {
+  local target="${ROOT}/.ai-sandbox/home/.codex/AGENTS.md"
+  local marker="<!-- managed-by: ai-sandbox/run.sh — DO NOT EDIT (regenerated each run) -->"
+
+  if [[ -f "${target}" ]] && ! grep -qF "${marker}" "${target}"; then
+    echo "[run.sh] preserving user-edited ${target}" >&2
+    return 0
+  fi
+
+  cat > "${target}" <<'EOF'
+<!-- managed-by: ai-sandbox/run.sh — DO NOT EDIT (regenerated each run) -->
+# Sandbox environment
+
+You are running inside a locked-down Docker container; the container itself is
+the security boundary.
+
+- Do not use or try to start bubblewrap (`bwrap`), `unshare`, `chroot`,
+  `nsenter` or any other nested sandbox/namespace tool. User namespaces are
+  disabled here, so they always fail.
+- If a command fails with "No permissions to create a new namespace" or a
+  similar sandbox error, do not retry it and do not request escalated
+  permissions. Tell the user and continue with a different approach.
+- The root filesystem is read-only; write only under /workspace and /tmp.
+EOF
+}
+
 render_claude_local_settings
 render_codex_config
+render_codex_agents
 
 if [[ -z "${AI_SANDBOX_PRINT_ARGS:-}" ]] && ! docker image inspect "${IMAGE_TAG}" >/dev/null 2>&1; then
   "${ROOT}/.ai-sandbox/build.sh" >/dev/null

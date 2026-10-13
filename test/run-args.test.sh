@@ -91,6 +91,32 @@ grep -q "Invalid Codex model name" <<<"$out" \
   && ok "TOML-breaking model name rejected" || bad "TOML-breaking model name rejected"
 grep -q 'never' "$CODEX_CFG" && bad "config not poisoned by bad model" || ok "config not poisoned by bad model"
 
+# --- Codex sandbox_mode per mode (bwrap cannot run in the container) -------
+for m in default webfetch; do
+  run_args --mode "$m" -- bash >/dev/null
+  grep -qx 'sandbox_mode = "workspace-write"' "$CODEX_CFG" \
+    && ok "$m: sandbox_mode = workspace-write" || bad "$m: sandbox_mode = workspace-write"
+  grep -qx 'network_access = false' "$CODEX_CFG" \
+    && ok "$m: Codex network_access = false" || bad "$m: Codex network_access = false"
+done
+for m in dev open offline; do
+  run_args --mode "$m" -- bash >/dev/null
+  grep -qx 'sandbox_mode = "danger-full-access"' "$CODEX_CFG" \
+    && ok "$m: sandbox_mode = danger-full-access" || bad "$m: sandbox_mode = danger-full-access"
+  grep -q 'sandbox_workspace_write' "$CODEX_CFG" \
+    && bad "$m: no [sandbox_workspace_write] section" || ok "$m: no [sandbox_workspace_write] section"
+done
+
+# --- Codex AGENTS.md: no-bwrap instruction, user edits preserved ------------
+CODEX_AGENTS="$TMP/.ai-sandbox/home/.codex/AGENTS.md"
+run_args -- bash >/dev/null
+grep -q 'bwrap' "$CODEX_AGENTS" \
+  && ok "AGENTS.md tells the agent not to use bwrap" || bad "AGENTS.md tells the agent not to use bwrap"
+echo "my own notes" > "$CODEX_AGENTS"
+run_args -- bash >/dev/null
+grep -qx 'my own notes' "$CODEX_AGENTS" \
+  && ok "user-edited AGENTS.md preserved" || bad "user-edited AGENTS.md preserved"
+
 echo
 echo "----------------------------------------"
 echo "passed: ${pass}  failed: ${fail}"
