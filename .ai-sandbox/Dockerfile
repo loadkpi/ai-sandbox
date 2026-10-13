@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     jq \
     libnss-wrapper \
+    procps \
     python3 \
     ripgrep \
     tini \
